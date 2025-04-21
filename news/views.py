@@ -1,12 +1,14 @@
 from django.shortcuts import render
-
-from rest_framework import viewsets, filters
+from .models import User, Category, SubCategory, Tag, News, Likes, Comment
+from rest_framework import viewsets, filters, permissions
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Category, SubCategory, Tag, News, Likes, Comment
-from rest_framework import permissions
-from .serializers import CategorySerializer, SubCategorySerializer, TagSerializer, NewsSerializer, LikeSerializer, CommentSerializer
+from .serializers import CategorySerializer, SubCategorySerializer, TagSerializer, NewsSerializer, LikeSerializer, CommentSerializer, RegisterSerializer
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-class CategoryViewSet(viewsets.ModelViewSet):
+User = get_user_model()
+
+class CategoryViewSet(viewsets.ModelViewSet):   
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = [
@@ -17,8 +19,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
     filterset_fields = ['id', 'name']        
     search_fields = ['name']                  
     ordering_fields = ['id', 'name']          
-    ordering = ['id']                         
     ordering = ['-id']                      
+
 class SubCategoryViewSet(viewsets.ModelViewSet):
     queryset = SubCategory.objects.all()
     serializer_class = SubCategorySerializer
@@ -30,6 +32,14 @@ class TagViewSet(viewsets.ModelViewSet):
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all()
     serializer_class = NewsSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = ['id', 'title', 'category', 'subcategory', 'tags']
+    search_fields = ['title', 'category__name', 'subcategory__name', 'tags__name']
+
 class LikesViewSet(viewsets.ModelViewSet):
     queryset = Likes.objects.all()
     serializer_class = LikeSerializer
@@ -43,7 +53,7 @@ class LikesViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-        
+
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
@@ -57,3 +67,38 @@ class CommentViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = ['id', 'username', 'email']
+    
+    def get_queryset(self):
+        return User.objects.filter(id=self.request.user.id)
+
+    
+class UserRegistrationViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [permissions.AllowAny]  # Allow anyone to register
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['id', 'username', 'email']
+    search_fields = ['username', 'email']
+    ordering_fields = ['id', 'username']
+    
+    def perform_create(self, serializer):
+        # Create the user with the given data
+        serializer.save()
+
+class JWTTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [permissions.AllowAny]
+
+class JWTTokenRefreshView(TokenRefreshView):
+    permission_classes = [permissions.AllowAny]
+
