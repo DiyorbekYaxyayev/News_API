@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Category, SubCategory, Tag, News
-
+@admin.register(News)
 class NewsAdmin(admin.ModelAdmin):
     list_display = ('title', 'category', 'subcategory', 'created_at', 'updated_at')
     list_filter = ('category', 'subcategory', 'tags', 'created_at')

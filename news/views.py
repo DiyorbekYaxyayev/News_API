@@ -102,3 +102,16 @@ class JWTTokenObtainPairView(TokenObtainPairView):
 class JWTTokenRefreshView(TokenRefreshView):
     permission_classes = [permissions.AllowAny]
 
+from rest_framework import viewsets
+from .models import News
+from .serializers import NewsSerializer
+
+class NewsViewSet(viewsets.ModelViewSet):
+    queryset = News.objects.all()
+    serializer_class = NewsSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.views += 1
+        instance.save()
+        return super().retrieve(request, *args, **kwargs)
